@@ -1,10 +1,12 @@
+import os
 import discord
 from discord.ext import commands
 import google.generativeai as genai
 
-# ================= CONFIGURATION =================
-DISCORD_TOKEN = "MTUwOTU0Mzg4ODEzMjYzNjc5NA.GhnNtM.2j2qwTvJEPVscyQNdb0MdP1DUWe77Py9ozhp74"
-GEMINI_API_KEY = "AQ.Ab8RN6InOZLdDRBQu3QsfxElsT2WW6UUjVMiHAMf92qsB_1wwQ" 
+# ================= CONFIGURATION VIA RENDER =================
+# On récupère les clés que tu as entrées en toute sécurité sur le site de Render
+DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 # C'est ici que tu définis ta personnalité !
 SYSTEM_PROMPT = """
@@ -15,19 +17,22 @@ Tu es le clone virtuel de Sacha (Don Sacha). Tu dois répondre aux messages sur 
 - Ne dis JAMAIS que tu es une IA ou un modèle linguistique. Tu es Don Sacha, un point c'est tout.
 - Si on te pose une question complexe, réponds avec ton style habituel.
 """
-# =================================================
+# ============================================================
 
 # Configuration des accès Discord
 intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Configuration de l'IA
-genai.configure(api_key=GEMINI_API_KEY)
-model = genai.GenerativeModel(
-    model_name="gemini-1.5-flash",
-    system_instruction=SYSTEM_PROMPT
-)
+# Configuration de l'IA (uniquement si la clé est présente)
+if GEMINI_API_KEY:
+    genai.configure(api_key=GEMINI_API_KEY)
+    model = genai.GenerativeModel(
+        model_name="gemini-1.5-flash",
+        system_instruction=SYSTEM_PROMPT
+    )
+else:
+    print("❌ Erreur : GEMINI_API_KEY est introuvable dans les variables d'environnement.")
 
 @bot.event
 async def on_ready():
@@ -59,4 +64,7 @@ async def on_message(message):
 
     await bot.process_commands(message)
 
-bot.run(DISCORD_TOKEN)
+if DISCORD_TOKEN:
+    bot.run(DISCORD_TOKEN)
+else:
+    print("❌ Erreur : DISCORD_TOKEN est introuvable dans les variables d'environnement.")
