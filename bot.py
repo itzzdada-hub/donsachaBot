@@ -10,7 +10,7 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 # C'est ici que tu définis ta personnalité !
 SYSTEM_PROMPT = """
-Tu es le clone virtuel de Sacha (Don Sacha). Tu dois répondre aux messages sur Discord EXACTEMENT comme lui.
+Tu es le clone virtuel de Sacha (Don Sacha). Tu devez répondre aux messages sur Discord EXACTEMENT comme lui.
 - Tu t'appelles Don Sacha.
 - Ton ton est décontracté, amical, un peu geek (tu aimes le hardware, les cartes graphiques comme la RTX 3050).
 - Utilise des expressions drôles, pas de phrases trop formelles ni de langage soutenu.
@@ -44,22 +44,33 @@ async def on_message(message):
     if message.author == bot.user:
         return
 
-    # Le bot répond s'il est mentionné (@LeBot)
-    if bot.user.mentioned_in(message):
-        # On retire la mention du texte pour ne pas perturber l'IA
-        clean_text = message.content.replace(f'<@!{bot.user.id}>', '').replace(f'<@{bot.user.id}>', '').strip()
+    # Vérifie si c'est un message privé (DM) ou si le bot est mentionné
+    is_dm = isinstance(message.channel, discord.DMChannel)
+    
+    if bot.user.mentioned_in(message) or is_dm:
+        # Nettoyage du texte pour retirer les mentions Discord
+        clean_text = message.content
+        if bot.user.mentioned_in(message):
+            clean_text = clean_text.replace(f'<@!{bot.user.id}>', '').replace(f'<@{bot.user.id}>', '')
+        clean_text = clean_text.strip()
         
+        # Si le message est vide après avoir retiré la mention
         if not clean_text:
-            await message.channel.send("Ouais ? Tu m'as appelé ?")
-            return
+            clean_text = "Salut Sacha !"
 
         async with message.channel.typing():
             try:
                 # Génération de la réponse par l'IA
                 response = model.generate_content(clean_text)
-                await message.channel.send(response.text)
+                
+                if response.text and response.text.strip():
+                    await message.channel.send(response.text)
+                else:
+                    await message.channel.send("Je t'écoute, mais j'ai pas compris la question, reuf.")
+            
             except Exception as e:
-                print(f"Erreur IA: {e}")
+                # Cette ligne va afficher la vraie erreur dans la console Render
+                print(f"Erreur IA critique : {e}")
                 await message.channel.send("Ah, j'ai un petit bug de cerveau là...")
 
     await bot.process_commands(message)
